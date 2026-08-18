@@ -84,7 +84,8 @@
 
     el(
       '<p>Not a portal button. This page starts TikTok OAuth, then TikTok sends you back here with <code>?code=</code>.</p>' +
-      '<label for="ck">Client key from Production → App details → Credentials (not Client secret)</label>' +
+      '<p>App is still <strong>Draft</strong>. Use the <strong>Sandbox</strong> Client key (portal toggle Sandbox → App details → Credentials). Production Client key stays dead until review approves the app. Never paste Client secret here.</p>' +
+      '<label for="ck">Sandbox Client key (not Client secret, not Production key)</label>' +
       '<input id="ck" type="text" autocomplete="off" spellcheck="false">' +
       '<p><button type="button" id="go">Continue with TikTok</button></p>'
     );
