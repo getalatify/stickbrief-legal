@@ -9,16 +9,103 @@
     body { font: 16px/1.5 system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; color: #111; }
     h1 { font-size: 1.5rem; }
     a { color: #0a58ca; }
+    label { display: block; margin: 1rem 0 0.25rem; font-weight: 600; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 0.5rem; font: inherit; }
+    button, .btn {
+      display: inline-block; margin-top: 0.75rem; padding: 0.55rem 0.9rem;
+      font: inherit; font-weight: 600; color: #fff; background: #111; border: 0; cursor: pointer;
+      text-decoration: none;
+    }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .box { background: #f4f4f4; padding: 0.75rem 1rem; margin: 1rem 0; overflow-wrap: anywhere; }
+    .ok { background: #e8f6e8; }
+    .err { background: #fde8e8; }
+    code { font-size: 0.9em; }
   </style>
 </head>
 <body>
   <h1>StickBrief</h1>
   <p>Educational stick-figure Shorts. This site is the public legal home for the internal TikTok developer app <strong>n8n_forTiktok</strong>.</p>
-  <p>The app is not a consumer product. It does not let other people sign up, log in, or post. It only lets the StickBrief operator publish StickBrief’s own videos to StickBrief’s own TikTok account through self-hosted n8n.</p>
+  <p>The app is not a consumer product. Other people cannot sign up or post. The operator button below only authorizes StickBrief’s own TikTok account so self-hosted n8n can Direct Post our own videos.</p>
   <ul>
     <li><a href="privacy.html">Privacy Policy</a></li>
     <li><a href="terms.html">Terms of Service</a></li>
   </ul>
   <p>Channel: <a href="https://www.youtube.com/@StickBrief">YouTube @StickBrief</a></p>
+
+  <h2>Operator login (TikTok)</h2>
+  <div id="panel"></div>
+
+  <script>
+  (function () {
+    var REDIRECT = 'https://getalatify.github.io/stickbrief-legal/';
+    var SCOPE = 'user.info.basic,video.publish,video.upload';
+    var panel = document.getElementById('panel');
+    var params = new URLSearchParams(location.search);
+    var code = params.get('code');
+    var state = params.get('state');
+    var err = params.get('error');
+    var errDesc = params.get('error_description');
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"'`]/g, function (c) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]);
+      });
+    }
+    function el(html) {
+      panel.innerHTML = html;
+    }
+
+    if (err) {
+      el(
+        '<div class="box err"><p><strong>TikTok refused.</strong></p><p>' +
+        escapeHtml(err) + (errDesc ? ' — ' + escapeHtml(errDesc) : '') +
+        '</p><p><a href="' + REDIRECT + '">Try again</a></p></div>'
+      );
+      return;
+    }
+
+    if (code) {
+      var expected = sessionStorage.getItem('tt_state');
+      var stateNote = (expected && state && expected !== state)
+        ? '<p>State mismatch. Still copy the code only into n8n, not into chat.</p>'
+        : '';
+      el(
+        '<div class="box ok"><p><strong>Authorized.</strong> TikTok sent a one-time code. It expires in about a minute.</p>' +
+        stateNote +
+        '<label for="authcode">Authorization code (paste into n8n token step only — not into chat)</label>' +
+        '<input id="authcode" type="text" readonly>' +
+        '<p>Scopes granted: <code>' + escapeHtml(params.get('scopes') || '(see TikTok)') + '</code></p>' +
+        '<p><a href="' + REDIRECT + '">Clear URL</a></p></div>'
+      );
+      document.getElementById('authcode').value = code;
+      return;
+    }
+
+    el(
+      '<p>Not a portal button. This page starts TikTok OAuth, then TikTok sends you back here with <code>?code=</code>.</p>' +
+      '<label for="ck">Client key from Production → App details → Credentials (not Client secret)</label>' +
+      '<input id="ck" type="text" autocomplete="off" spellcheck="false">' +
+      '<p><button type="button" id="go">Continue with TikTok</button></p>'
+    );
+    var ck = document.getElementById('ck');
+    var go = document.getElementById('go');
+    ck.value = localStorage.getItem('tt_ck') || '';
+    go.onclick = function () {
+      var key = ck.value.trim();
+      if (!key) { ck.focus(); return; }
+      localStorage.setItem('tt_ck', key);
+      var s = (crypto.randomUUID && crypto.randomUUID()) || String(Math.random()).slice(2);
+      sessionStorage.setItem('tt_state', s);
+      var url = 'https://www.tiktok.com/v2/auth/authorize/' +
+        '?client_key=' + encodeURIComponent(key) +
+        '&response_type=code' +
+        '&scope=' + encodeURIComponent(SCOPE) +
+        '&redirect_uri=' + encodeURIComponent(REDIRECT) +
+        '&state=' + encodeURIComponent(s);
+      location.href = url;
+    };
+  })();
+  </script>
 </body>
 </html>
